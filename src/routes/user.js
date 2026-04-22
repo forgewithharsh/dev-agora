@@ -1,6 +1,7 @@
 import express from "express";
 import { userAuth } from "../middlewares/auth.js";
 import ConnectionRequest from "../models/connectionRequest.js";
+import User from "../models/user.js";
 
 const userRouter = express.Router();
 
@@ -64,11 +65,25 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         },
         { toUserId: loggedInUser._id },
       ],
-    })
-      .select("fromUserId toUserId")
-      x
+    }).select("fromUserId toUserId");
 
-    res.send(connectionRequests);
+    const hideUsersFromFeed = new Set();
+
+    connectionRequests.forEach((req) => {
+      hideUsersFromFeed.add(req.fromUserId.toString());
+      hideUsersFromFeed.add(req.toUserId.toString());
+    });
+
+    console.log(hideUsersFromFeed);
+
+    const users = await User.find({
+      $and: [
+        { _id: { $nin: Array.from(hideUsersFromFeed) } },
+        { _id: { $ne: loggedInUser._id } },
+      ],
+    }).select(USER_SAFE_DATA);
+
+    res.send(users);
   } catch (error) {
     res.status(400).send({ error: error.message });
   }
