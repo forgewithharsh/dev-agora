@@ -35,28 +35,28 @@ authRouter.post("/signup", async (req, res) => {
 // Login
 authRouter.post("/login", async (req, res) => {
   try {
-    const { emailId, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ emailId });
+    const user = await User.findOne({ emailId: email });
+
     if (!user) {
       throw new Error("Invalid credentials");
     }
 
     const passwordValidation = await user.validatePassword(password);
 
-    if (passwordValidation) {
-      // Verify the JWT
-      const token = await user.getJWT();
-
-      // Add the token to cookie and send the response back to the user
-      res.cookie("token", token, {
-        expires: new Date(Date.now() + 8 * 3600000),
-      });
-
-      res.send("Login Successfully!");
-    } else {
+    if (!passwordValidation) {
       throw new Error("Invalid credentials");
     }
+
+    const token = await user.getJWT();
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+      httpOnly: true,
+    });
+
+    res.send("Login Successfully!");
   } catch (error) {
     res.status(400).send("ERROR :" + error.message);
   }
