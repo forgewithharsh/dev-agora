@@ -56,7 +56,7 @@ authRouter.post("/login", async (req, res) => {
       httpOnly: true,
     });
 
-    res.send("Login Successfully!");
+    res.send(user);
   } catch (error) {
     res.status(400).send("ERROR :" + error.message);
   }
