@@ -35,42 +35,28 @@ authRouter.post("/signup", async (req, res) => {
 // Login
 authRouter.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { emailId, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
-    }
-
-    const user = await User.findOne({ emailId: email });
+    const user = await User.findOne({ emailId: emailId });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      throw new Error("Invalid credentials");
     }
 
-    const isValid = await user.validatePassword(password);
+    const isPasswordValid = await user.validatePassword(password);
 
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (isPasswordValid) {
+      const token = await user.getJWT();
+
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
+      res.send(user);
+    } else {
+      throw new Error("Invalid credentials");
     }
-
-    const token = await user.getJWT();
-
-    res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000),
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-    });
-
-    res.json({
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      emailId: user.emailId,
-    });
-
   } catch (error) {
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(400).send("ERROR : " + error.message);
   }
 });
 
